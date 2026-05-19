@@ -1,34 +1,13 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderOpen, ArrowLeft, Calendar, FileText, Target, Book, ChevronRight, Download, Video, ChevronDown, List, FolderArchive, Maximize2, Search, TrendingUp, BookOpen, Star, PenTool, Paperclip, HelpCircle, MessagesSquare, Network, Brain, Trophy, Cpu, Layers, BadgeCheck, Laptop } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { FileText, Calendar, Book, ArrowLeft, Target, FolderOpen, List, ChevronDown, ChevronRight, MessagesSquare, Network, Brain, BadgeCheck, Cpu, Layers, Download, Maximize2, Laptop, PenTool } from 'lucide-react';
 import Link from 'next/link';
 import PDFModal from '@/app/components/PDFModal';
 
-const sidebarCategories = [
-  { id: 'materia', title: 'Materia', icon: <Book size={18} /> },
-  { id: 'video_tabla', title: 'Video Tabla de Verdad', icon: <Video size={18} /> },
-  { id: 'apes', title: 'APES', icon: <FileText size={18} /> },
-  { id: 'deber', title: 'Deberes', icon: <List size={18} /> },
-  { id: 'consultas', title: 'Consultas', icon: <MessagesSquare size={18} /> },
-  { id: 'ekos', title: 'Ekos', icon: <Network size={18} /> },
-  { id: 'lectura_critica', title: 'Lectura Crítica Matemática', icon: <Brain size={18} /> },
-  { id: 'excelentes', title: 'Excelentes', icon: <BadgeCheck size={18} /> },
-  { id: 'talleres', title: 'Talleres', icon: <Cpu size={18} /> },
-  { id: 'anexos', title: 'Anexos', icon: <Layers size={18} /> }
-];
-
-const examenesSubCategories = [
-  { id: 'pruebas_escritas', title: 'Pruebas Escritas' },
-  { id: 'pruebas_domingo', title: 'Pruebas Domingo' },
-  { id: 'examenes_finales', title: 'Exámenes Finales' },
-  { id: 'examenes', title: 'Otros Exámenes' }
-];
-
 const deberesSubCategories = [
-  { id: 'deber', title: 'Deberes', icon: <List size={28} /> },
+  { id: 'deber', title: 'Deber / Tarea', icon: <List size={28} /> },
   { id: 'consultas', title: 'Consultas', icon: <MessagesSquare size={28} /> },
   { id: 'ekos', title: 'Ekos', icon: <Network size={28} /> },
   { id: 'lectura_critica', title: 'Lectura Crítica Matemática', icon: <Brain size={28} /> },
@@ -38,23 +17,16 @@ const deberesSubCategories = [
 ];
 
 const categoryTitles = {
-  'materia': 'Materia Principal',
-  'examenes': 'Otros Exámenes',
-  'examen': 'Exámenes (Archivo)',
-  'pruebas_escritas': 'Pruebas Escritas',
-  'pruebas_domingo': 'Pruebas Domingo',
-  'examenes_finales': 'Exámenes Finales',
-  'video_tabla': 'VIDEOS',
-  'apes': 'Asignación APES',
   'deber': 'Deber / Tarea',
   'consultas': 'Consultas (Deber)',
   'ekos': 'Ekos (Deber)',
   'lectura_critica': 'Lectura Crítica (Deber)',
   'excelentes': 'Excelentes (Deber)',
   'talleres': 'Talleres (Deber)',
-  'anexos': 'Anexos (Deber)',
-  'emprendimiento': 'Emprendimiento'
+  'anexos': 'Anexos (Deber)'
 };
+
+const deberesIds = ['consultas', 'ekos', 'lectura_critica', 'excelentes', 'talleres', 'anexos', 'deber'];
 
 const getOrdinalSemana = (num) => {
   if (!num) return '';
@@ -62,20 +34,14 @@ const getOrdinalSemana = (num) => {
   return ordinals[num - 1] || num;
 };
 
-export default function DetalleMateria({ params }) {
-  const { id } = use(params);
-
+export default function DeberesList() {
   const [asignaciones, setAsignaciones] = useState([]);
-  const [materia, setMateria] = useState(null);
+  const [materiasMap, setMateriasMap] = useState({});
   const [selectedPdf, setSelectedPdf] = useState(null);
-  const router = useRouter();
-
-  const [activeParcial, setActiveParcial] = useState(null); // null, 1, 2
-  const [activeWeek, setActiveWeek] = useState(null); // null, 1..7
+  const [activeParcial, setActiveParcial] = useState(null);
+  const [activeWeek, setActiveWeek] = useState(null);
+  const [activeCategory, setActiveCategory] = useState('deberes_root');
   const [openingFolder, setOpeningFolder] = useState(null);
-  const [activeCategory, setActiveCategory] = useState('materia');
-  const [isDeberesOpen, setIsDeberesOpen] = useState(false);
-  const [isExamenesOpen, setIsExamenesOpen] = useState(false);
   const [selectedSubtopic, setSelectedSubtopic] = useState(null);
 
   const subtopicTitles = {
@@ -97,16 +63,16 @@ export default function DetalleMateria({ params }) {
     fetch('/api/materias')
       .then(res => res.json())
       .then(data => {
-        const found = data.find(m => m.id.toString() === id);
-        setMateria(found);
-      });
-
-    fetch(`/api/asignaciones?materiaId=${id}`)
+        const mapa = {};
+        data.forEach(m => { mapa[m.id] = m.name });
+        setMateriasMap(mapa);
+        return fetch('/api/asignaciones');
+      })
       .then(res => res.json())
-      .then(data => setAsignaciones(data));
-  }, [id]);
-
-  if (!materia) return <div style={{ textAlign: 'center', marginTop: '6rem', color: 'var(--primary)', letterSpacing: '2px', textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 700 }}>Sincronizando Archivos...</div>;
+      .then(data => {
+        setAsignaciones(data.filter(d => deberesIds.includes(d.type)));
+      });
+  }, []);
 
   const handleFolderClick = (id) => {
     if (openingFolder) return;
@@ -117,16 +83,13 @@ export default function DetalleMateria({ params }) {
     }, 1400);
   };
 
-  const isDeberesRoot = activeCategory === 'deberes_root';
-  const isDeberes = deberesSubCategories.some(sub => sub.id === activeCategory) || isDeberesRoot;
+  const isDeberesSub = deberesSubCategories.some(sub => sub.id === activeCategory);
 
   const filteredItems = asignaciones.filter(a => {
-    // If it has no parcial, default to 1
     const p = a.parcial || 1;
     if (p !== activeParcial) return false;
 
-    // Solo filtrar por semana si es una categoría de Deberes y hay una semana seleccionada
-    if (isDeberes && activeWeek !== null) {
+    if (activeWeek !== null) {
       if (activeCategory === 'consultas') {
         if (activeWeek === 2) {
           return a.semana === 2;
@@ -139,53 +102,23 @@ export default function DetalleMateria({ params }) {
       }
     }
 
-    if (isDeberesRoot) {
-      return deberesSubCategories.some(sub => sub.id === a.type) || ['deber', 'deberes', 'deberes_root'].includes(a.type);
+    if (activeCategory !== 'deberes_root' && activeCategory !== 'deber') {
+      return a.type === activeCategory;
     }
 
-    // For legacy support: old 'deber' falls into the exact category 'deber' if it exists, otherwise we'll treat it as standard.
-    return a.type === activeCategory || (['deber', 'deberes', 'deberes_root'].includes(a.type) && ['deber', 'deberes', 'deberes_root'].includes(activeCategory));
+    return true;
   });
 
-
-
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} style={{ paddingBottom: '4rem', paddingTop: '4rem' }}>
-      <style jsx global>{`
-        html, body {
-          overflow-y: auto !important;
-          height: auto !important;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        ::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
-      <header style={{ marginBottom: '4rem' }}>
-        <div style={{ marginBottom: '3rem' }}>
-          <Link href="/materias" style={{ textDecoration: 'none' }}>
-            <motion.div
-              whileHover={{ x: -10, color: 'var(--primary)' }}
-              whileTap={{ scale: 0.95 }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--foreground)', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 600 }}
-            >
-              <ArrowLeft size={18} /> Regresar al Repositorio
-            </motion.div>
-          </Link>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <div style={{ color: 'var(--white)', background: 'var(--primary)', padding: '24px', borderRadius: '50%', boxShadow: '0 10px 30px rgba(201,31,31,0.2)' }}>
-            <FolderOpen size={48} />
-          </div>
-          <div>
-            <h1 className="gradient-text" style={{ fontSize: '3.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
-              {materia.name}
-            </h1>
-            <p style={{ color: 'var(--foreground)', fontSize: '1.2rem', marginTop: '0.5rem', fontWeight: 500 }}>{materia.description}</p>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} style={{ paddingTop: '6rem', paddingBottom: '4rem' }}>
+      <header style={{ marginBottom: '4rem', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ padding: '24px', background: 'var(--white)', borderRadius: '50%', color: 'var(--primary)', boxShadow: '0 10px 30px rgba(201,31,31,0.1)' }}>
+            <FileText size={48} />
           </div>
         </div>
+        <h1 className="gradient-text" style={{ fontSize: '3.5rem', marginBottom: '1rem', fontWeight: 800 }}>Archivo de Deberes</h1>
+        <p style={{ color: 'var(--foreground)', fontSize: '1.2rem', fontWeight: 500 }}>Explora todas tus tareas organizadas por parcial y semana.</p>
       </header>
 
       <AnimatePresence mode="wait">
@@ -228,7 +161,6 @@ export default function DetalleMateria({ params }) {
                     transformStyle: 'preserve-3d'
                   }}
                 >
-                  {/* Back Cover */}
                   <div
                     className={`bento-card ${p.theme}`}
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: '1.5rem', zIndex: 1, border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
@@ -236,7 +168,6 @@ export default function DetalleMateria({ params }) {
                     <h3 style={{ fontSize: '2.5rem', margin: 0, color: p.id === 1 ? "var(--primary)" : "var(--white)", fontWeight: 800 }}>{p.title}</h3>
                   </div>
 
-                  {/* Flying Papers */}
                   <AnimatePresence>
                     {openingFolder === p.id && (
                       <>
@@ -276,11 +207,8 @@ export default function DetalleMateria({ params }) {
                     )}
                   </AnimatePresence>
 
-                  {/* Front Flap */}
                   <motion.div
-                    animate={{
-                      rotateX: openingFolder === p.id ? -130 : 0,
-                    }}
+                    animate={{ rotateX: openingFolder === p.id ? -130 : 0 }}
                     transition={{ duration: 0.8, type: 'spring', stiffness: 70, damping: 14 }}
                     style={{
                       position: 'absolute',
@@ -306,7 +234,6 @@ export default function DetalleMateria({ params }) {
                   >
                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(201,31,31,0.02)', transform: 'rotateY(180deg) translateZ(1px)', backfaceVisibility: 'hidden', borderRadius: 'inherit' }} />
                     <div style={{ position: 'absolute', top: '15px', width: '80px', height: '6px', background: 'rgba(201,31,31,0.2)', borderRadius: '10px' }} />
-
                     <img src="/carpeta.png" alt="Carpeta" style={{ width: '120px', height: '120px', objectFit: 'contain', zIndex: 2 }} />
                   </motion.div>
                 </motion.div>
@@ -315,48 +242,45 @@ export default function DetalleMateria({ params }) {
           </motion.div>
         ) : (
           <motion.div
-            key="dashboard"
-            initial={{ opacity: 0, scale: 0.9, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.6, type: 'spring', stiffness: 100 }}
-            style={{ display: 'flex', gap: '3rem', flex: 1, overflow: 'hidden' }}
+            key="deberes-dashboard"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            style={{ display: 'flex', gap: '3rem', maxWidth: '1400px', margin: '0 auto', padding: '0 2rem' }}
           >
-            {/* BACK BUTTON AND SIDEBAR CONTAINER */}
-            <div style={{ width: '280px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '2rem', overflowY: 'auto', paddingRight: '10px' }}>
+            {/* Sidebar similar a materia detail */}
+            <div style={{ width: '280px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <motion.button
                 whileHover={{ x: -5 }}
-                onClick={() => { setActiveParcial(null); setActiveWeek(null); setActiveCategory('materia'); }}
+                onClick={() => { setActiveParcial(null); setActiveWeek(null); setActiveCategory('deberes_root'); }}
                 className="btn-outline"
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.9rem', color: 'var(--primary)', padding: '10px 15px', background: 'var(--white)', border: 'none', boxShadow: '0 5px 15px rgba(201,31,31,0.1)' }}
               >
                 <ArrowLeft size={16} /> REGRESAR A PARCIALES
               </motion.button>
 
-              {activeWeek && (isDeberes || isDeberesRoot) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                  <motion.button
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    whileHover={{ x: -5 }}
-                    onClick={() => { setActiveWeek(null); if (activeCategory !== 'consultas') setActiveCategory('deberes_root'); }}
-                    className="btn-pill"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--white)', padding: '10px 15px', background: 'var(--primary)', border: 'none', boxShadow: '0 5px 15px rgba(201,31,31,0.2)' }}
-                  >
-                    {activeCategory === 'consultas' ? <ArrowLeft size={16} /> : <Calendar size={16} />} {activeCategory === 'consultas' ? 'REGRESAR' : 'CAMBIAR SEMANA'}
-                  </motion.button>
-                  {selectedSubtopic && (
-                    <motion.button
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      whileHover={{ x: -5 }}
-                      onClick={() => setSelectedSubtopic(null)}
-                      className="btn-outline"
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--primary)', padding: '10px 15px', background: 'var(--white)', border: 'none', boxShadow: '0 5px 15px rgba(201,31,31,0.1)', marginTop: '0.5rem' }}
-                    >
-                      <ArrowLeft size={16} /> REGRESAR A UNIDADES
-                    </motion.button>
-                  )}
-                </div>
+              {activeWeek && (
+                <motion.button
+                  whileHover={{ x: -5 }}
+                  onClick={() => { setActiveWeek(null); if (activeCategory !== 'consultas') setActiveCategory('deberes_root'); }}
+                  className="btn-pill"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--white)', padding: '10px 15px', background: 'var(--primary)', border: 'none', boxShadow: '0 5px 15px rgba(201,31,31,0.2)' }}
+                >
+                  {activeCategory === 'consultas' ? <ArrowLeft size={16} /> : <Calendar size={16} />} {activeCategory === 'consultas' ? 'REGRESAR' : 'CAMBIAR SEMANA'}
+                </motion.button>
+              )}
+
+              {selectedSubtopic && (
+                <motion.button
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  whileHover={{ x: -5 }}
+                  onClick={() => setSelectedSubtopic(null)}
+                  className="btn-outline"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--primary)', padding: '10px 15px', background: 'var(--white)', border: 'none', boxShadow: '0 5px 15px rgba(201,31,31,0.1)', marginTop: '0.5rem' }}
+                >
+                  <ArrowLeft size={16} /> REGRESAR A UNIDADES
+                </motion.button>
               )}
 
               <div className="bento-card bento-white" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'sticky', top: '100px', border: 'none' }}>
@@ -367,132 +291,50 @@ export default function DetalleMateria({ params }) {
                   }
                 </h3>
 
-                {sidebarCategories.map(cat => {
-                  if (cat.id === 'video_tabla') return null;
+                <button
+                  onClick={() => setActiveCategory('deberes_root')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px 15px', borderRadius: '16px',
+                    background: activeCategory === 'deberes_root' ? 'var(--secondary)' : 'transparent',
+                    color: activeCategory === 'deberes_root' ? 'var(--primary)' : 'var(--foreground)',
+                    border: 'none', cursor: 'pointer', textAlign: 'left', fontWeight: activeCategory === 'deberes_root' ? 800 : 600,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <List size={18} /> Todos los Deberes
+                </button>
 
-                  const isAnexos = cat.id === 'anexos';
-                  const showVideosBeforeAnexos = isAnexos && activeParcial === 2;
-
-                  return (
-                    <div key={cat.id} style={{ display: 'contents' }}>
-                      {showVideosBeforeAnexos && (
-                        <button
-                          onClick={() => setActiveCategory('video_tabla')}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px 15px', borderRadius: '16px',
-                            background: activeCategory === 'video_tabla' ? 'var(--secondary)' : 'transparent',
-                            color: activeCategory === 'video_tabla' ? 'var(--primary)' : 'var(--foreground)',
-                            border: 'none', cursor: 'pointer', textAlign: 'left', fontWeight: activeCategory === 'video_tabla' ? 800 : 600,
-                            transition: 'all 0.2s ease',
-                            marginBottom: '0.8rem'
-                          }}
-                        >
-                          <Video size={18} /> VIDEOS
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => setActiveCategory(cat.id)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px 15px', borderRadius: '16px',
-                          background: activeCategory === cat.id ? 'var(--secondary)' : 'transparent',
-                          color: activeCategory === cat.id ? 'var(--primary)' : 'var(--foreground)',
-                          border: 'none', cursor: 'pointer', textAlign: 'left', fontWeight: activeCategory === cat.id ? 800 : 600,
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        {cat.icon} {cat.title}
-                      </button>
-
-                      {cat.id === 'lectura_critica' && (
-                        <div style={{ width: '100%' }}>
-                          {/* EXPANDABLE EXAMENES */}
-                          <button
-                            onClick={() => setIsExamenesOpen(!isExamenesOpen)}
-                            style={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '12px 15px', borderRadius: '16px',
-                              background: 'transparent', color: 'var(--foreground)',
-                              border: 'none', cursor: 'pointer', textAlign: 'left', fontWeight: 600,
-                              transition: 'all 0.2s ease'
-                            }}
-                          >
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <Target size={18} /> Exámenes
-                            </span>
-                            <motion.div animate={{ rotate: isExamenesOpen ? 180 : 0 }}>
-                              <ChevronDown size={18} />
-                            </motion.div>
-                          </button>
-
-                          <AnimatePresence>
-                            {isExamenesOpen && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '5px', paddingLeft: '35px', marginTop: '5px' }}
-                              >
-                                {examenesSubCategories.map(sub => {
-                                  const isSubActive = activeCategory === sub.id;
-                                  return (
-                                    <button
-                                      key={sub.id}
-                                      onClick={() => { setActiveCategory(sub.id); }}
-                                      style={{
-                                        padding: '8px 12px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
-                                        color: isSubActive ? 'var(--primary)' : 'var(--foreground)',
-                                        fontWeight: isSubActive ? 800 : 500,
-                                        fontSize: '0.9rem', transition: 'color 0.2s ease'
-                                      }}
-                                    >
-                                      {sub.title}
-                                    </button>
-                                  )
-                                })}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {activeParcial === 2 && (
+                {deberesSubCategories.map(cat => (
                   <button
-                    onClick={() => setActiveCategory('emprendimiento')}
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px 15px', borderRadius: '16px',
-                      background: activeCategory === 'emprendimiento' ? 'var(--secondary)' : 'transparent',
-                      color: activeCategory === 'emprendimiento' ? 'var(--primary)' : 'var(--foreground)',
-                      border: 'none', cursor: 'pointer', textAlign: 'left', fontWeight: activeCategory === 'emprendimiento' ? 800 : 600,
+                      background: activeCategory === cat.id ? 'var(--secondary)' : 'transparent',
+                      color: activeCategory === cat.id ? 'var(--primary)' : 'var(--foreground)',
+                      border: 'none', cursor: 'pointer', textAlign: 'left', fontWeight: activeCategory === cat.id ? 800 : 600,
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    <TrendingUp size={18} /> Emprendimiento
+                    {cat.icon} {cat.title}
                   </button>
-                )}
-
-
-
+                ))}
               </div>
             </div>
 
-            <div style={{ flex: 1, minWidth: '300px' }}>
+            <div style={{ flex: 1 }}>
               <AnimatePresence mode="wait">
-                {(isDeberesRoot || isDeberes) && !activeWeek ? (
+                {!activeWeek ? (
                   <motion.div
                     key="semana-selector"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    style={{ paddingTop: '1rem' }}
                   >
                     <h2 style={{ textAlign: 'center', color: 'var(--primary)', marginBottom: '3rem', fontSize: '2.5rem', fontWeight: 800 }}>
                       {activeCategory === 'consultas' ? 'Selecciona el formato' : 'Selecciona una semana'}
                     </h2>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '2.5rem', width: '100%', maxWidth: '1100px', margin: '0 auto', justifyContent: 'center' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '2.5rem', justifyContent: 'center' }}>
                       {activeCategory === 'consultas' ? (
                         [
                           { n: 1, t: 'A COMPUTADORA', icon: <Laptop size={72} color="var(--primary)" /> },
@@ -505,29 +347,13 @@ export default function DetalleMateria({ params }) {
                             onClick={() => setActiveWeek(w.n)}
                             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.2rem', cursor: 'pointer' }}
                           >
-                            <div style={{
-                              width: '220px', height: '220px',
-                              background: 'rgba(255, 255, 255, 0.9)',
-                              borderRadius: '32px',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              boxShadow: '0 20px 40px rgba(201,31,31,0.12)',
-                              border: '1px solid rgba(201,31,31,0.05)',
-                              backdropFilter: 'blur(10px)',
-                              position: 'relative', overflow: 'hidden'
-                            }}>
+                            <div style={{ width: '220px', height: '220px', background: 'rgba(255, 255, 255, 0.9)', borderRadius: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 20px 40px rgba(201,31,31,0.12)', border: '1px solid rgba(201,31,31,0.05)', backdropFilter: 'blur(10px)', position: 'relative', overflow: 'hidden' }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', padding: '20px', zIndex: 2 }}>
                                 {w.icon}
                               </div>
                               <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle, rgba(201,31,31,0.05) 0%, transparent 75%)', zIndex: 1 }} />
                             </div>
-                            <span style={{
-                              fontSize: '1.2rem',
-                              fontWeight: 900,
-                              color: 'var(--primary)',
-                              textAlign: 'center',
-                              textTransform: 'uppercase',
-                              letterSpacing: '1px'
-                            }}>
+                            <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--primary)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '1px' }}>
                               {w.t}
                             </span>
                           </motion.div>
@@ -555,16 +381,7 @@ export default function DetalleMateria({ params }) {
                             onClick={() => setActiveWeek(w.n)}
                             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.2rem', cursor: 'pointer' }}
                           >
-                            <div style={{
-                              width: '180px', height: '180px',
-                              background: 'rgba(255, 255, 255, 0.9)',
-                              borderRadius: '32px',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              boxShadow: '0 20px 40px rgba(201,31,31,0.12)',
-                              border: '1px solid rgba(201,31,31,0.05)',
-                              backdropFilter: 'blur(10px)',
-                              position: 'relative', overflow: 'hidden'
-                            }}>
+                            <div style={{ width: '180px', height: '180px', background: 'rgba(255, 255, 255, 0.9)', borderRadius: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 20px 40px rgba(201,31,31,0.12)', border: '1px solid rgba(201,31,31,0.05)', backdropFilter: 'blur(10px)', position: 'relative', overflow: 'hidden' }}>
                               <div style={{ display: 'flex', gap: '2px', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', padding: '10px' }}>
                                 {Array.isArray(w.gif) ? (
                                   w.gif.map((g, idx) => (
@@ -576,14 +393,7 @@ export default function DetalleMateria({ params }) {
                               </div>
                               <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle, rgba(201,31,31,0.03) 0%, transparent 70%)', zIndex: 1 }} />
                             </div>
-                            <span style={{
-                              fontSize: '1.2rem',
-                              fontWeight: 900,
-                              color: 'var(--primary)',
-                              textAlign: 'center',
-                              textTransform: 'uppercase',
-                              letterSpacing: '1px'
-                            }}>
+                            <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--primary)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '1px' }}>
                               Semana {getOrdinalSemana(w.n)}
                             </span>
                           </motion.div>
@@ -598,10 +408,10 @@ export default function DetalleMateria({ params }) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', paddingBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', paddingBottom: '1.5rem', borderBottom: '2px solid rgba(201,31,31,0.1)', flexWrap: 'wrap', gap: '1rem' }}>
                       <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <span style={{ color: 'var(--secondary)' }}>/</span> {categoryTitles[activeCategory] || 'Registros'}
-                        {isDeberes && activeWeek && (
+                        <span style={{ color: 'var(--secondary)' }}>/</span> {categoryTitles[activeCategory] || 'Todos los Deberes'}
+                        {activeWeek && (
                           <span style={{ fontSize: '1.2rem', background: 'var(--secondary)', color: 'var(--primary)', padding: '4px 12px', borderRadius: '10px' }}>
                             {activeCategory === 'consultas' 
                               ? (activeWeek === 2 
@@ -618,7 +428,7 @@ export default function DetalleMateria({ params }) {
                       </h2>
 
                       {/* Navigation buttons */}
-                      {isDeberes && activeWeek && (
+                      {activeWeek && (
                         <div style={{ display: 'flex', gap: '10px' }}>
                           {activeCategory === 'consultas' ? (
                             <>
@@ -758,102 +568,75 @@ export default function DetalleMateria({ params }) {
                         </div>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                       <AnimatePresence mode='popLayout'>
                         {filteredItems.map((asig, i) => {
                           const isImage = asig.file_url?.match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i) != null;
-                          const isVideoFile = asig.file_url?.match(/\.(mp4|webm|ogg|mov)$/i) != null;
-                          const isYoutube = asig.file_url?.includes('youtube.com') || asig.file_url?.includes('youtu.be');
-                          let embedUrl = asig.file_url;
-                          if (isYoutube) {
-                            if (embedUrl.includes('watch?v=')) {
-                              embedUrl = embedUrl.replace('watch?v=', 'embed/').split('&')[0];
-                            } else if (embedUrl.includes('youtu.be/')) {
-                              embedUrl = embedUrl.replace('youtu.be/', 'www.youtube.com/embed/').split('?')[0];
-                            }
-                          }
                           return (
                             <motion.div
                               layout
                               key={asig.id}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, scale: 0.95 }}
-                              transition={{ delay: i * 0.05 }}
+                              transition={{ duration: 0.4, delay: i * 0.1 }}
                               className="bento-card bento-white"
-                              style={{ padding: '2.5rem', display: 'flex', gap: '2.5rem', alignItems: asig.file_url ? 'flex-start' : 'center', flexWrap: 'wrap' }}
+                              style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', padding: '2.5rem' }}
                             >
-                              <div style={{ flex: 1, minWidth: '250px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                                  <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, color: 'var(--primary)' }}>{asig.title}</h3>
-                                  {asig.date && (
-                                    <div className="badge-pill pink" style={{ fontSize: '0.75rem' }}>
-                                      <Calendar size={14} /> {asig.date}
-                                    </div>
-                                  )}
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                                  <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary)', margin: 0 }}>{asig.title}</h3>
+                                  <Link href={`/materias/${asig.materia_id}`}>
+                                    <span className="badge-pill pink" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <Book size={14} /> {materiasMap[asig.materia_id] || 'Materia'}
+                                    </span>
+                                  </Link>
                                 </div>
-                                <p style={{ color: 'var(--foreground)', fontSize: '1.1rem', margin: 0, lineHeight: '1.6', fontWeight: 500 }}>{asig.description}</p>
-                                {asig.file_url && !isVideoFile && !isYoutube && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '1.5rem', alignItems: 'flex-start' }}>
-                                    <motion.button
-                                      whileHover={{ scale: 1.05 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      onClick={() => setSelectedPdf({ url: asig.file_url, title: asig.title })}
-                                      className="btn-pill"
-                                      style={{ padding: '10px 24px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'var(--primary)', color: 'var(--white)', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
-                                    >
-                                      <BookOpen size={16} /> ABRIR DOCUMENTO
-                                    </motion.button>
-                                    <motion.a
-                                      whileHover={{ scale: 1.05 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      href={asig.file_url}
-                                      download={asig.title || 'documento'}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="btn-pill"
-                                      style={{ padding: '10px 24px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', color: 'var(--primary)', border: '2px solid var(--primary)', textDecoration: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
-                                    >
-                                      <Download size={16} /> DESCARGAR DOCUMENTO
-                                    </motion.a>
-                                  </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.95rem', marginBottom: '1rem', color: 'var(--foreground)', opacity: 0.7 }}>
+                                  <Calendar size={18} /> Fecha: {asig.date || 'Sin fecha'}
+                                </div>
+                                <p style={{ lineHeight: '1.6', marginBottom: asig.file_url ? '1.5rem' : '0', fontWeight: 500, color: 'var(--foreground)' }}>{asig.description}</p>
+                                
+                                {asig.file_url && (
+                                  <button 
+                                    onClick={() => setSelectedPdf({ url: asig.file_url, title: asig.title })}
+                                    className="btn-pill" 
+                                    style={{ fontSize: '0.9rem', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                  >
+                                    <Download size={16} /> ABRIR DOCUMENTO
+                                  </button>
                                 )}
                               </div>
+
                               {asig.file_url && (
-                                <div style={{ flex: 1.5, minWidth: '250px', height: isImage ? 'auto' : '280px', display: 'flex', justifyContent: 'center', position: 'relative', borderRadius: '16px', border: '2px solid rgba(0,0,0,0.05)', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', overflow: 'hidden', background: '#fff' }}>
+                                <div style={{ flex: 1, minWidth: '300px', height: isImage ? 'auto' : '280px', display: 'flex', justifyContent: 'center', position: 'relative', borderRadius: '16px', border: '2px solid rgba(0,0,0,0.05)', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', overflow: 'hidden', background: '#fff' }}>
                                   {isImage ? (
                                     <img src={asig.file_url} alt={asig.title} style={{ width: '100%', height: 'auto', display: 'block', cursor: 'pointer' }} onClick={() => setSelectedPdf({ url: asig.file_url, title: asig.title })} />
-                                  ) : isVideoFile ? (
-                                    <video src={asig.file_url} controls style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} />
-                                  ) : isYoutube ? (
-                                    <iframe src={embedUrl} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: '100%', height: '100%', border: 'none' }} />
                                   ) : (
                                     <iframe src={`${asig.file_url}#toolbar=0&navpanes=0`} style={{ width: '100%', height: '100%', border: 'none' }} />
                                   )}
-                                  {!isVideoFile && !isYoutube && (
-                                    <motion.button
-                                      whileHover={{ scale: 1.1 }}
-                                      whileTap={{ scale: 0.9 }}
-                                      onClick={(e) => { e.stopPropagation(); setSelectedPdf({ url: asig.file_url, title: asig.title }); }}
-                                      style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--primary)', color: 'var(--white)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 5px 15px rgba(0,0,0,0.2)', zIndex: 20 }}
-                                      title="Ampliar documento"
-                                    >
-                                      <Maximize2 size={18} />
-                                    </motion.button>
-                                  )}
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={(e) => { e.stopPropagation(); setSelectedPdf({ url: asig.file_url, title: asig.title }); }}
+                                    style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--primary)', color: 'var(--white)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 5px 15px rgba(0,0,0,0.2)', zIndex: 20 }}
+                                  >
+                                    <Maximize2 size={18} />
+                                  </motion.button>
                                 </div>
                               )}
                             </motion.div>
-                          )
+                          );
                         })}
-                      </AnimatePresence>
 
-                      {filteredItems.length === 0 && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bento-card bento-pink" style={{ padding: '6rem 2rem', textAlign: 'center', marginTop: '1rem' }}>
-                          <FolderOpen size={48} style={{ margin: '0 auto 1.5rem', color: 'var(--primary)' }} />
-                          <p style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--primary)' }}>No hay documentos registrados para esta categoría.</p>
-                        </motion.div>
-                      )}
+                        {filteredItems.length === 0 && (
+                          <div className="bento-card bento-pink" style={{ padding: '6rem 2rem', textAlign: 'center', color: 'var(--primary)' }}>
+                            <FolderOpen size={48} style={{ margin: '0 auto 1.5rem' }} />
+                            <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 800 }}>No hay deberes registrados</h3>
+                            <p style={{ fontWeight: 600 }}>No se encontraron archivos para esta selección.</p>
+                          </div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   )}
                   </motion.div>
@@ -864,11 +647,12 @@ export default function DetalleMateria({ params }) {
         )}
       </AnimatePresence>
 
-      <PDFModal
-        url={selectedPdf?.url}
-        title={selectedPdf?.title}
-        onClose={() => setSelectedPdf(null)}
+      <PDFModal 
+        url={selectedPdf?.url} 
+        title={selectedPdf?.title} 
+        onClose={() => setSelectedPdf(null)} 
       />
     </motion.div>
   );
 }
+

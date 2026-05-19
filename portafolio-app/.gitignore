@@ -44,3 +44,7 @@ next-env.d.ts
 database.sqlite
 database.sqlite-wal
 database.sqlite-shm
+/data/database.sqlite*
+/data/uploads/
+/public/uploads/
+/app/uploads/
